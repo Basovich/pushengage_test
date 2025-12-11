@@ -106,7 +106,7 @@ eval("{\n\n/* istanbul ignore next  */\nfunction styleTagTransform(css, styleEle
   \**********************/
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
-eval("{__webpack_require__.r(__webpack_exports__);\n/* harmony import */ var _styles_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./styles.css */ \"./src/styles.css\");\n\n\nconsole.log('Webpack project is running!');\n\nconst app = document.getElementById('app');\nconst heading = document.createElement('h1');\nheading.textContent = 'Hello, Webpack!';\napp.appendChild(heading);\n\n\n//# sourceURL=webpack://pushengage_test/./src/index.js?\n}");
+eval("{__webpack_require__.r(__webpack_exports__);\n/* harmony import */ var _styles_css__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./styles.css */ \"./src/styles.css\");\n\n\nconsole.log('Webpack project is running!');\n\n\n//# sourceURL=webpack://pushengage_test/./src/index.js?\n}");
 
 /***/ }),
 
