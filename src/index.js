@@ -12,6 +12,11 @@ function getDomain(hostname) {
         return null;
     }
 
+    // Special case for vercel.app to avoid "invalid domain" errors
+    if (hostname.endsWith('.vercel.app')) {
+        return null;
+    }
+
     const parts = hostname.split('.');
     if (parts.length < 2) {
         return null;
