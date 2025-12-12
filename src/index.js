@@ -17,7 +17,7 @@ function getDomain(hostname) {
         return null;
     }
 
-    const secondLevelTLDs = ['co', 'com', 'gov', 'net', 'org', 'ac'];
+    const secondLevelTLDs = ['co', 'com', 'gov', 'net', 'org', 'ac', 'app'];
     if (parts.length >= 3 && secondLevelTLDs.includes(parts[parts.length - 2])) {
         return '.' + parts.slice(-3).join('.');
     } else {
@@ -26,20 +26,40 @@ function getDomain(hostname) {
 }
 
 /**
- * Sets a cookie with the specified name, value, and expiration days.
+ * Sets a cookie with the specified name, value, and options.
  * @param {string} name - The name of the cookie.
  * @param {string} value - The value of the cookie.
- * @param {number} days - Number of days until expiration.
+ * @param {Object} options - The options for the cookie.
  */
-function setCookie(name, value, days) {
-    let expires = "";
-    if (days) {
-        const date = new Date();
-        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-        expires = "; expires=" + date.toUTCString();
+function setCookie(name, value, options = {}) {
+    options = { ...options };
+
+    if (!options.domain) {
+        const domain = getDomain(window.location.hostname);
+        if (domain) {
+            options.domain = domain;
+        }
     }
-    const domain = getDomain();
-    document.cookie = name + "=" + (value || "") + expires + "; path=/; domain=." + domain + "; SameSite=Lax";
+
+    if (!options.path) {
+        options.path = '/';
+    }
+
+    if (options.expires instanceof Date) {
+        options.expires = options.expires.toUTCString();
+    }
+
+    let updatedCookie = encodeURIComponent(name) + '=' + encodeURIComponent(value);
+
+    for (let optionKey in options) {
+        updatedCookie += '; ' + optionKey;
+        let optionValue = options[optionKey];
+        if (optionValue !== true) {
+            updatedCookie += '=' + optionValue;
+        }
+    }
+
+    document.cookie = updatedCookie;
 }
 
 /**
@@ -102,7 +122,9 @@ function handleNewSubscription(subscriberId) {
     console.log('PushEngage: Got new Subscriber ID:', subscriberId);
 
     // Set cookie for 365 days
-    setCookie(COOKIE_NAME, subscriberId, 365);
+    setCookie(COOKIE_NAME, subscriberId, {
+        expires: 365
+    });
     console.log('PushEngage: Saved to cookie');
 
     displayMessage(`New Subscription! Saved to Cookie: ${subscriberId}`, 'green');
