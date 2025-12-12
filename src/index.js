@@ -7,8 +7,22 @@ const COOKIE_NAME = 'push_engage_subscriber_id';
  * Strips 'www.' and returns the domain prefixed with a dot.
  * @returns {string} The domain string (e.g., ".example.com")
  */
-function getDomain() {
-    return window.location.hostname.replace(/^www\./, '');
+function getDomain(hostname) {
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || /^\d+\.\d+\.\d+\.\d+$/.test(hostname)) {
+        return null;
+    }
+
+    const parts = hostname.split('.');
+    if (parts.length < 2) {
+        return null;
+    }
+
+    const secondLevelTLDs = ['co', 'com', 'gov', 'net', 'org', 'ac'];
+    if (parts.length >= 3 && secondLevelTLDs.includes(parts[parts.length - 2])) {
+        return '.' + parts.slice(-3).join('.');
+    } else {
+        return '.' + parts.slice(-2).join('.');
+    }
 }
 
 /**
