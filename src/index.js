@@ -1,89 +1,5 @@
 import './styles.css';
 
-const COOKIE_NAME = 'push_engage_subscriber_id';
-
-/**
- * Dynamically determines the domain for the cookie.
- * Strips 'www.' and returns the domain prefixed with a dot.
- * @returns {string} The domain string (e.g., ".example.com")
- */
-function getDomain(hostname) {
-    if (hostname === 'localhost' || hostname === '127.0.0.1' || /^\d+\.\d+\.\d+\.\d+$/.test(hostname)) {
-        return null;
-    }
-
-    // Special case for vercel.app: User requested to force .vercel.app domain
-    // WARNING: This will likely be blocked by browsers due to Public Suffix List
-    if (hostname.endsWith('.vercel.app')) {
-        return '.vercel.app';
-    }
-
-    const parts = hostname.split('.');
-    if (parts.length < 2) {
-        return null;
-    }
-
-    const secondLevelTLDs = ['co', 'com', 'gov', 'net', 'org', 'ac', 'app'];
-    if (parts.length >= 3 && secondLevelTLDs.includes(parts[parts.length - 2])) {
-        return '.' + parts.slice(-3).join('.');
-    } else {
-        return '.' + parts.slice(-2).join('.');
-    }
-}
-
-/**
- * Sets a cookie with the specified name, value, and options.
- * @param {string} name - The name of the cookie.
- * @param {string} value - The value of the cookie.
- * @param {Object} options - The options for the cookie.
- */
-function setCookie(name, value, options = {}) {
-    options = { ...options };
-
-    if (!options.domain) {
-        const domain = getDomain(window.location.hostname);
-        if (domain) {
-            options.domain = domain;
-        }
-    }
-
-    if (!options.path) {
-        options.path = '/';
-    }
-
-    if (options.expires instanceof Date) {
-        options.expires = options.expires.toUTCString();
-    }
-
-    let updatedCookie = encodeURIComponent(name) + '=' + encodeURIComponent(value);
-
-    for (let optionKey in options) {
-        updatedCookie += '; ' + optionKey;
-        let optionValue = options[optionKey];
-        if (optionValue !== true) {
-            updatedCookie += '=' + optionValue;
-        }
-    }
-
-    document.cookie = updatedCookie;
-}
-
-/**
- * Retrieves a cookie by name.
- * @param {string} name - The name of the cookie to retrieve.
- * @returns {string|null} The cookie value or null if not found.
- */
-function getCookie(name) {
-    const nameEQ = name + "=";
-    const ca = document.cookie.split(';');
-    for (let i = 0; i < ca.length; i++) {
-        let c = ca[i];
-        while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-        if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
-    }
-    return null;
-}
-
 /**
  * Displays a visual message on the page.
  * @param {string} message - The message to display.
@@ -99,54 +15,40 @@ function displayMessage(message, color) {
 }
 
 /**
- * Handles logic when a subscriber ID already exists in the cookie.
- * @param {string} subscriberId - The existing subscriber ID.
+ * Updates the href of the link with data-pushengage-id attribute.
+ * Appends pushengage-id query parameter.
+ * @param {string} subscriberId - The subscriber ID.
  */
-function handleExistingSubscriber(subscriberId) {
-    console.log('PushEngage: Found existing subscriber ID in cookie:', subscriberId);
+function updateLinkWithSubscriberId(subscriberId) {
+    const link = document.querySelector('a[data-pushengage-id]');
+    if (link) {
+        try {
+            const url = new URL(link.href);
+            url.searchParams.set('pushengage-id', subscriberId);
 
-    // Correct usage: PushEngage.push(function() { ... })
-    window.PushEngage = window.PushEngage || [];
-    window.PushEngage.push(function () {
-        PushEngage.setProfileId(subscriberId)
-            .then(function (response) {
-                console.log('PushEngage: Profile ID set successfully', response);
-                displayMessage(`Loaded from Cookie & Set Profile ID: ${subscriberId}`, 'blue');
-            })
-            .catch(function (error) {
-                console.error('PushEngage: Error setting profile ID', error);
-                displayMessage(`Error setting Profile ID: ${error.message}`, 'red');
-            });
-    });
-}
+            const sdkData = localStorage.getItem('PushEngageSDK');
+            if (sdkData) {
+                url.searchParams.set('pushengage-sdk-data', sdkData);
+            }
 
-/**
- * Handles logic when a new subscription occurs.
- * @param {string} subscriberId - The new subscriber ID.
- */
-function handleNewSubscription(subscriberId) {
-    console.log('PushEngage: Got new Subscriber ID:', subscriberId);
-
-    // Set cookie for 365 days
-    setCookie(COOKIE_NAME, subscriberId, {
-        expires: 365
-    });
-    console.log('PushEngage: Saved to cookie');
-
-    displayMessage(`New Subscription! Saved to Cookie: ${subscriberId}`, 'green');
-}
-
-/**
- * Sets up the listener for PushEngage subscription changes.
- */
-function setupSubscriptionListener() {
-    console.log('PushEngage: No cookie found, listening for subscription...');
-    window.addEventListener('PushEngage.onSubscriptionChange', function (event) {
-        console.log('PushEngage: Subscription changed', event.detail);
-        if (event.detail && event.detail.subscriber_id) {
-            handleNewSubscription(event.detail.subscriber_id);
+            link.href = url.toString();
+            console.log('PushEngage: Updated link href with subscriber ID:', subscriberId);
+            displayMessage(`Updated Link with ID: ${subscriberId}`, 'blue');
+        } catch (e) {
+            console.error('PushEngage: Error updating link href', e);
         }
-    });
+    } else {
+        console.warn('PushEngage: Link with data-pushengage-id not found');
+    }
+}
+
+/**
+ * Handles logic when a subscriber ID is available.
+ * @param {string} subscriberId - The subscriber ID.
+ */
+function handleSubscription(subscriberId) {
+    console.log('PushEngage: Got Subscriber ID:', subscriberId);
+    updateLinkWithSubscriberId(subscriberId);
 }
 
 /**
@@ -155,31 +57,32 @@ function setupSubscriptionListener() {
 function init() {
     console.log('Webpack project is running!');
 
-    // Wait for PushEngage to be ready (optional, but good practice if we were calling methods immediately)
-    // For this logic, we just check the cookie first.
+    // Ensure PushEngage is loaded or wait for it
+    window.PushEngage = window.PushEngage || [];
 
-    // We wrap this in PushEngage.push to ensure the library is loaded if we were using getSubscriberId directly,
-    // but here we are checking our own cookie first.
-
-    // However, to be safe and follow the previous pattern:
-    if (typeof window.PushEngage !== 'undefined') {
-        window.PushEngage.push(function () {
-            checkSubscriberStatus();
+    window.PushEngage.push(function () {
+        // 1. Check for existing subscription
+        PushEngage.getSubscriberId().then(function (subscriberId) {
+            if (subscriberId) {
+                console.log('PushEngage: Existing subscription found');
+                handleSubscription(subscriberId);
+            } else {
+                console.log('PushEngage: No existing subscription');
+            }
+        }).catch(function (err) {
+            console.error('PushEngage: Error getting subscriber ID', err);
         });
-    } else {
-        // Fallback or just run immediately if script is async loaded
-        checkSubscriberStatus();
-    }
-}
 
-function checkSubscriberStatus() {
-    const existingSubscriberId = getCookie(COOKIE_NAME);
-
-    if (existingSubscriberId) {
-        handleExistingSubscriber(existingSubscriberId);
-    } else {
-        setupSubscriptionListener();
-    }
+        // 2. Listen for new subscriptions
+        window.addEventListener('PushEngage.onSubscriptionChange', function (event) {
+            console.log('PushEngage: Subscription changed', event.detail);
+            // The event detail might vary, checking both common patterns
+            const newSubscriberId = event.detail.subscriber_id || event.detail.subscriberId;
+            if (newSubscriberId) {
+                handleSubscription(newSubscriberId);
+            }
+        });
+    });
 }
 
 // Run initialization

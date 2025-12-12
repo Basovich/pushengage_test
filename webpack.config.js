@@ -26,6 +26,7 @@ module.exports = {
     open: true,
     port: 8080,
     watchFiles: ['./public/index.html'],
+    allowedHosts: 'all',
   },
   mode: 'development',
 };
