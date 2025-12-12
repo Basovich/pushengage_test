@@ -12,9 +12,10 @@ function getDomain(hostname) {
         return null;
     }
 
-    // Special case for vercel.app to avoid "invalid domain" errors
+    // Special case for vercel.app: User requested to force .vercel.app domain
+    // WARNING: This will likely be blocked by browsers due to Public Suffix List
     if (hostname.endsWith('.vercel.app')) {
-        return null;
+        return '.vercel.app';
     }
 
     const parts = hostname.split('.');
