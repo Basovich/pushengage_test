@@ -65,11 +65,19 @@ function displayMessage(message, color) {
 function handleExistingSubscriber(subscriberId) {
     console.log('PushEngage: Found existing subscriber ID in cookie:', subscriberId);
 
-    // Assuming PushEngage is loaded
-    window._peq = window._peq || [];
-    window._peq.push(['setProfileId', subscriberId]);
-
-    displayMessage(`Loaded from Cookie: ${subscriberId}`, 'blue');
+    // Correct usage: PushEngage.push(function() { ... })
+    window.PushEngage = window.PushEngage || [];
+    window.PushEngage.push(function () {
+        PushEngage.setProfileId(subscriberId)
+            .then(function (response) {
+                console.log('PushEngage: Profile ID set successfully', response);
+                displayMessage(`Loaded from Cookie & Set Profile ID: ${subscriberId}`, 'blue');
+            })
+            .catch(function (error) {
+                console.error('PushEngage: Error setting profile ID', error);
+                displayMessage(`Error setting Profile ID: ${error.message}`, 'red');
+            });
+    });
 }
 
 /**
